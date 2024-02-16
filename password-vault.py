@@ -1,14 +1,39 @@
 # Import necessary files 
 import sqlite3, hashlib
 from tkinter import * 
+from tkinter import simpledialog
+from functools import partial
+
+#managing the database
+
+#initiating db
+with  sqlite3.connect("pass_valut.db") as db:
+    #to control the db 
+    cursor = db.cursor()
+
+#creaing a table in the database 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS masterpassword(
+id INTEGER PRIMARY KEY,
+password TEXT NOT NULL);              
+""")
 
 
-window = Tk() 
+
+#setting up window
+window = Tk()   
 
 window.title("Secret vault for passwords")
 
+
+def hashPassword(input):
+    hash = hashlib.md5(input)
+    hash = hash.hexdigest()
+
+    return hash
+
 def mainScreen():
-    window.geometry("400x250")
+    window.geometry("400x200")
 
     lbl = Label(window, text="Create a master password")
     lbl.config(anchor=CENTER)
@@ -31,15 +56,23 @@ def mainScreen():
 
     def savePassword():
         if txt.get() == txt2.get():
-            pass
+            hashedPassword = hashPassword(txt.get().encode('utf-8'))
+
+            updatedPassword = """INSERT INTO masterpassword(password)
+            VALUES(?) """   
+            cursor.execute(updatedPassword,[(hashedPassword)])
+            db.commit()
+
+            passVault()
         else:
             lbl3.config(text="ERROR CODE: Passwords do not match")
     
     btn = Button(window, text="Save", command=savePassword)
-    btn.pack(pady=15)
+    btn.pack()
+
 
 def loginScreen(): 
-    window.geometry("400x250")
+    window.geometry("400x200")
 
     lbl = Label(window, text="Enter the master password")
     lbl.config(anchor=CENTER)
@@ -52,12 +85,17 @@ def loginScreen():
     lbl2 = Label(window)
     lbl.pack()
 
+    def getMasterPassword():
+        checkHashPassword = hashPassword(txt.get().encode('utf-8'))
+        cursor.execute("SELECT * FROM masterpassword WHERE id = 1 AND password = ?",[(checkHashPassword)])
+        print(checkHashPassword)
+        return cursor.fetchall()
+
     def checkPassword():
-        print("test")
+        ISmatch = getMasterPassword()
 
-        password = "test"
-
-        if password == txt.get():
+        print(ISmatch)
+        if ISmatch:
             passVault()
         else:
             txt.delete(0, 'end') 
@@ -78,6 +116,10 @@ def passVault():
     lbl.pack()
 
 
+cursor.execute("SELECT * FROM masterpassword")
 
-mainScreen()
+if cursor.fetchall():
+    loginScreen()
+else :
+    mainScreen()    
 window.mainloop()
