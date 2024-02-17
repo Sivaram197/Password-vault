@@ -18,13 +18,13 @@ unlocked_icon_url = "https://us.123rf.com/450wm/arhimicrostok/arhimicrostok1707/
 #managing the database
 
 #initiating db
-with  sqlite3.connect("pass_valut.db") as db:
+with  sqlite3.connect("vault.db") as db:
     #to control the db 
     cursor = db.cursor()
 
-#creaing a table in the database 
+# Creating a table in the database 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS masterpassword(
+CREATE TABLE IF NOT EXISTS locker(
 id INTEGER PRIMARY KEY,
 password TEXT NOT NULL);              
 """)
@@ -74,7 +74,7 @@ def mainScreen():
         if txt.get() == txt2.get():
             hashedPassword = hashPassword(txt.get().encode('utf-8'))
 
-            updatedPassword = """INSERT INTO masterpassword(password)
+            updatedPassword = """INSERT INTO locker(password)
             VALUES(?) """   
             cursor.execute(updatedPassword,[(hashedPassword)])
             db.commit()
@@ -103,7 +103,7 @@ def loginScreen():
 
     def getMasterPassword():
         checkHashPassword = hashPassword(txt.get().encode('utf-8'))
-        cursor.execute("SELECT * FROM masterpassword WHERE id = 1 AND password = ?",[(checkHashPassword)])
+        cursor.execute("SELECT * FROM locker WHERE id = 1 AND password = ?",[(checkHashPassword)])
         print(checkHashPassword)
         return cursor.fetchall()
 
@@ -140,7 +140,7 @@ def fetch_image(url,width,height,background_color):
     return ImageTk.PhotoImage(background)
 
 locked_icon_width, locked_icon_height = 50, 50  
-unlocked_icon_width, unlocked_icon_height = 50, 50
+unlocked_icon_width, unlocked_icon_height = 80, 80
 
 
 locked_icon = fetch_image(locked_icon_url, locked_icon_width, locked_icon_height,background_color)
@@ -156,16 +156,13 @@ def passVault():
 
     window.geometry("700x450")
 
+    lb2 = Label(window,image=unlocked_icon)
+    lb2.config(anchor=CENTER)
+    lb2.pack()
 
     lbl = Label(window, text="Secret Vault")
     lbl.config(anchor=CENTER)
     lbl.pack()
-
-    lb2 = Label(window,image=unlocked_icon )
-    lb2.config(anchor=CENTER)
-    lb2.pack()
-
-    
 
 def update_lock_icon(is_locked=True):
     if is_locked:
@@ -175,7 +172,7 @@ def update_lock_icon(is_locked=True):
 
 
 
-cursor.execute("SELECT * FROM masterpassword")
+cursor.execute("SELECT * FROM locker")
 
 if cursor.fetchall():
     loginScreen()
