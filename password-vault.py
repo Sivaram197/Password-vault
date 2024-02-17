@@ -3,7 +3,7 @@ import sqlite3, hashlib
 from tkinter import * 
 from tkinter import simpledialog
 from functools import partial
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw 
 import requests
 from io import BytesIO
 
@@ -122,20 +122,29 @@ def loginScreen():
     btn.pack(pady=15) 
 
 
+background_color = (255, 255, 255)
 
 # Function to fetch and create PhotoImage objects from online images
-def fetch_image(url,width,height):
+def fetch_image(url,width,height,background_color):
     response = requests.get(url)
     image_data = BytesIO(response.content)
-    image = Image.open(image_data).resize((width, height))
-    return ImageTk.PhotoImage(image)
+    lock_icon = Image.open(image_data).resize((width, height))
+
+    # Create a new transparent image with the desired background color
+    background = Image.new("RGB", lock_icon.size, (0, 0, 0, 0))
+    background.paste(lock_icon, (0, 0))
+
+    # Convert to RGB mode to remove alpha channel
+    background = background.convert("RGB")
+
+    return ImageTk.PhotoImage(background)
 
 locked_icon_width, locked_icon_height = 50, 50  
 unlocked_icon_width, unlocked_icon_height = 50, 50
 
 
-locked_icon = fetch_image(locked_icon_url, locked_icon_width, locked_icon_height)
-unlocked_icon = fetch_image(unlocked_icon_url, unlocked_icon_width, unlocked_icon_height)
+locked_icon = fetch_image(locked_icon_url, locked_icon_width, locked_icon_height,background_color)
+unlocked_icon = fetch_image(unlocked_icon_url, unlocked_icon_width, unlocked_icon_height,background_color)
 
 # Create a label to display the lock icon
 lock_label = Label(window, image=locked_icon)
