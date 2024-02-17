@@ -3,6 +3,17 @@ import sqlite3, hashlib
 from tkinter import * 
 from tkinter import simpledialog
 from functools import partial
+from PIL import Image, ImageTk
+import requests
+from io import BytesIO
+
+
+# URL for a locked lock icon
+locked_icon_url = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRK0uZfY1mnglM4RM2yCr6PENWKbLk9gdhm0Q&usqp=CAU" 
+
+# URL for an unlocked lock icon
+unlocked_icon_url = "https://us.123rf.com/450wm/arhimicrostok/arhimicrostok1707/arhimicrostok170703704/81657248-unlock-icon-flat-design-style-validation-of-the-user-completed.jpg?ver=6"  
+
 
 #managing the database
 
@@ -25,6 +36,11 @@ window = Tk()
 
 window.title("Secret vault for passwords")
 
+def update_lock_icon(is_locked=True):
+    if is_locked:
+        lock_label.config(image=locked_icon)
+    else:
+        lock_label.config(image=unlocked_icon)
 
 def hashPassword(input):
     hash = hashlib.md5(input)
@@ -105,15 +121,49 @@ def loginScreen():
     btn = Button(window, text="Submit", command=checkPassword)
     btn.pack(pady=15) 
 
+
+
+# Function to fetch and create PhotoImage objects from online images
+def fetch_image(url,width,height):
+    response = requests.get(url)
+    image_data = BytesIO(response.content)
+    image = Image.open(image_data).resize((width, height))
+    return ImageTk.PhotoImage(image)
+
+locked_icon_width, locked_icon_height = 50, 50  
+unlocked_icon_width, unlocked_icon_height = 50, 50
+
+
+locked_icon = fetch_image(locked_icon_url, locked_icon_width, locked_icon_height)
+unlocked_icon = fetch_image(unlocked_icon_url, unlocked_icon_width, unlocked_icon_height)
+
+# Create a label to display the lock icon
+lock_label = Label(window, image=locked_icon)
+lock_label.pack(pady=10)
+
 def passVault():
     for widget in window.winfo_children():
         widget.destroy()
 
     window.geometry("700x450")
 
+
     lbl = Label(window, text="Secret Vault")
     lbl.config(anchor=CENTER)
     lbl.pack()
+
+    lb2 = Label(window,image=unlocked_icon )
+    lb2.config(anchor=CENTER)
+    lb2.pack()
+
+    
+
+def update_lock_icon(is_locked=True):
+    if is_locked:
+        lock_label.config(image=locked_icon)
+    else:
+        lock_label.config(image=unlocked_icon)
+
 
 
 cursor.execute("SELECT * FROM masterpassword")
