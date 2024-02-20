@@ -6,6 +6,8 @@ from PIL import Image, ImageTk, ImageDraw
 import requests
 from io import BytesIO
 
+window = Tk()
+window.title("Secret vault for passwords")
 # Initiating db
 with sqlite3.connect("vault.db") as db:
     cursor = db.cursor()
@@ -25,27 +27,6 @@ website TEXT NOT NULL,
 username TEXT,
 password TEXT NOT NULL);              
 """)
-
-window = Tk()
-window.title("Secret vault for passwords")
-
-# Fetch and create PhotoImage objects from online images
-def fetch_image(url, width, height, background_color):
-    response = requests.get(url)
-    image_data = BytesIO(response.content)
-    lock_icon = Image.open(image_data).resize((width, height))
-
-    # Create a new image with an alpha channel
-    background = Image.new("RGBA", lock_icon.size, background_color + (0,))
-
-    # Paste the lock icon onto the new image without using a mask
-    background.paste(lock_icon, (0, 0))
-
-    # Convert to RGB mode to remove alpha channel
-    background = background.convert("RGB")
-
-    return ImageTk.PhotoImage(background)
-
 # URLs for locked and unlocked lock icons
 locked_icon_url = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRK0uZfY1mnglM4RM2yCr6PENWKbLk9gdhm0Q&usqp=CAU"
 unlocked_icon_url = "https://us.123rf.com/450wm/arhimicrostok/arhimicrostok1707/arhimicrostok170703704/81657248-unlock-icon-flat-design-style-validation-of-the-user-completed.jpg?ver=6"
@@ -57,19 +38,22 @@ unlocked_icon_width, unlocked_icon_height = 80, 80
 # Background color
 background_color = (255, 255, 255)
 
+
+
+def fetch_image(url, width, height, background_color):
+    response = requests.get(url)
+    image_data = BytesIO(response.content)
+    lock_icon = Image.open(image_data).resize((width, height))
+
+    background = Image.new("RGBA", lock_icon.size, background_color + (0,))
+    background.paste(lock_icon, (0, 0))
+    background = background.convert("RGB")
+
+    return ImageTk.PhotoImage(background)
+
 # Fetch icons and set initial locked icon
 locked_icon = fetch_image(locked_icon_url, locked_icon_width, locked_icon_height, background_color)
 unlocked_icon = fetch_image(unlocked_icon_url, unlocked_icon_width, unlocked_icon_height, background_color)
-
-# Create a label to display the lock icon
-lock_label = Label(window, image=locked_icon)
-lock_label.pack(pady=10)
-
-def update_lock_icon(is_locked=True):
-    if is_locked:
-        lock_label.config(image=locked_icon)
-    else:
-        lock_label.config(image=unlocked_icon)
 
 def hashPassword(input):
     hash = hashlib.md5(input)
@@ -221,6 +205,29 @@ def removePasswordPopup():
     btn_remove = Button(popup, text="Remove", command=removePassword)
     btn_remove.pack()
 
+def revealPasswordPopup(password_label, original_password):
+    popup = Toplevel(window)
+    popup.title("Reveal Password")
+
+    lbl_master_password = Label(popup, text="Enter master password:")
+    lbl_master_password.pack()
+
+    entry_master_password = Entry(popup, width=30, show="*")
+    entry_master_password.pack()
+
+    def revealPassword():
+        entered_master_password = entry_master_password.get()
+        hashed_entered_password = hashPassword(entered_master_password.encode('utf-8'))
+
+        if hashed_entered_password == getMasterPasswordHash():
+            password_label.config(text=original_password)
+            popup.destroy()
+        else:
+            messagebox.showerror("Error", "Incorrect master password")
+
+    btn_reveal = Button(popup, text="Reveal Password", command=revealPassword)
+    btn_reveal.pack()
+
 def passVault():
     for widget in window.winfo_children():
         widget.destroy()
@@ -245,8 +252,11 @@ def passVault():
         username_label = Label(window, text=f"Username: {record[2]}", font=("Helvetica", 12))
         username_label.pack()
 
-        password_label = Label(window, text=f"Password: {record[3]}", font=("Helvetica", 12))  # Display the original password
+        password_label = Label(window, text="*" * len(record[3]), font=("Helvetica", 12))  # Display asterisks for the password
         password_label.pack()
+
+        reveal_button = Button(window, text="Reveal Password", command=lambda r=record[3], pl=password_label: revealPasswordPopup(pl, r), font=("Helvetica", 12))
+        reveal_button.pack()
 
         separator = Frame(window, height=2, bd=1, relief=SUNKEN)
         separator.pack(fill=X, padx=5, pady=5)
@@ -256,6 +266,11 @@ def passVault():
 
     remove_button = Button(window, text="Remove Password", command=removePasswordPopup, font=("Helvetica", 12))
     remove_button.pack(pady=10)
+
+def getMasterPasswordHash():
+    cursor.execute("SELECT password FROM locker WHERE id = 1")
+    master_password_hash = cursor.fetchone()[0]
+    return master_password_hash
 
 # Check if there is a master password in the locker
 cursor.execute("SELECT * FROM locker")
